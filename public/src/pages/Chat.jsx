@@ -69,7 +69,20 @@ const Container = styled.div`
   justify-content: center;
   gap: 1rem;
   align-items: center;
-  background-color: #131324;
+  // background-color: #131324;
+  background-image: url('https://images.kienthuc.net.vn/zoom/800/Uploaded/quocquan/2022_03_07/stars-in-the-sky-16464831158261870257042_XOKT.jpg');
+  background-size: cover;
+  background-position: 0 0;
+  animation: moveBackground 50s linear infinite;
+
+  @keyframes moveBackground {
+    0% {
+      background-position: 0 0;
+    }
+    100% {
+      background-position: -1000px 0; /* Adjust the value to control the speed and direction */
+    }
+  }
   .container {
     height: 85vh;
     width: 85vw;

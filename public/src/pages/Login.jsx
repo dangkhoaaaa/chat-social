@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
 import { useNavigate, Link } from "react-router-dom";
-import Logo from "../assets/logo.svg";
+import Logo from "../assets/logo.png";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { loginRoute } from "../utils/APIRoutes";
@@ -66,7 +66,7 @@ export default function Login() {
       <FormContainer>
         <form action="" onSubmit={(event) => handleSubmit(event)}>
           <div className="brand">
-            <img src={Logo} alt="logo" />
+            <img src={Logo} alt="logo" /> 
             <h1>social</h1>
           </div>
           <input
@@ -101,7 +101,19 @@ const FormContainer = styled.div`
   justify-content: center;
   gap: 1rem;
   align-items: center;
-  background-color: #131324;
+    background-image: url('https://images.kienthuc.net.vn/zoom/800/Uploaded/quocquan/2022_03_07/stars-in-the-sky-16464831158261870257042_XOKT.jpg');
+  background-size: cover;
+  background-position: 0 0;
+  animation: moveBackground 50s linear infinite;
+
+  @keyframes moveBackground {
+    0% {
+      background-position: 0 0;
+    }
+    100% {
+      background-position: -1000px 0; /* Adjust the value to control the speed and direction */
+    }
+  }
   .brand {
     display: flex;
     align-items: center;
@@ -137,20 +149,27 @@ const FormContainer = styled.div`
       outline: none;
     }
   }
-  button {
-    background-color: #4e0eff;
-    color: white;
-    padding: 1rem 2rem;
-    border: none;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 0.4rem;
-    font-size: 1rem;
-    text-transform: uppercase;
-    &:hover {
-      background-color: #4e0eff;
-    }
+button {
+  background-color: #4e0eff;
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 0.9rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  transition: transform 0.2s ease, filter 0.3s ease; /* Added transform transition */
+
+  &:hover {
+    filter: brightness(1.9);
   }
+
+  &:active {
+    transform: scale(0.7); /* Slightly scales down the button when clicked */
+  }
+}
+
   span {
     color: white;
     text-transform: uppercase;
