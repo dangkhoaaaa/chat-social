@@ -6,10 +6,11 @@ import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { sendMessageRoute, recieveMessageRoute } from "../utils/APIRoutes";
 
-export default function ChatContainer({ currentChat, socket }) {
+export default function ChatContainer({ currentChat, socket, currentUser }) {
   const [messages, setMessages] = useState([]);
   const scrollRef = useRef();
   const [arrivalMessage, setArrivalMessage] = useState(null);
+  const [typingUsers, setTypingUsers] = useState({});
 
   useEffect(async () => {
     const data = await JSON.parse(
@@ -33,6 +34,16 @@ export default function ChatContainer({ currentChat, socket }) {
     getCurrentChat();
   }, [currentChat]);
 
+  const handleTyping = (isTyping) => {
+    if (socket.current && currentChat) {
+      socket.current.emit("typing", {
+        userId: currentUser._id,
+        receiverId: currentChat._id,
+        isTyping
+      });
+    }
+  };
+
   const handleSendMsg = async (msg) => {
     const data = await JSON.parse(
       localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
@@ -51,6 +62,8 @@ export default function ChatContainer({ currentChat, socket }) {
     const msgs = [...messages];
     msgs.push({ fromSelf: true, message: msg });
     setMessages(msgs);
+
+    handleTyping(false); // Stop typing indicator when message is sent
   };
 
   useEffect(() => {
@@ -58,7 +71,16 @@ export default function ChatContainer({ currentChat, socket }) {
       socket.current.on("msg-recieve", (msg) => {
         setArrivalMessage({ fromSelf: false, message: msg });
       });
+      socket.current.on("user-typing", ({ userId, isTyping }) => {
+        setTypingUsers(prev => ({ ...prev, [userId]: isTyping }));
+      });
     }
+    return () => {
+      if (socket.current) {
+        socket.current.off("msg-recieve");
+        socket.current.off("user-typing");
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -102,19 +124,22 @@ export default function ChatContainer({ currentChat, socket }) {
           );
         })}
       </div>
-      <ChatInput handleSendMsg={handleSendMsg} />
+      <div className="chat-typing">
+        {typingUsers[currentChat._id] && (
+          <div className="typing-indicator">{currentChat.username} is typing...</div>
+        )}
+      </div>
+      <ChatInput handleSendMsg={handleSendMsg} handleTyping={handleTyping} />
     </Container>
   );
 }
 
 const Container = styled.div`
   display: grid;
-  grid-template-rows: 10% 80% 10%;
+  grid-template-rows: 10% 70% 10% 10%;
   gap: 0.1rem;
   overflow: hidden;
-  @media screen and (min-width: 720px) and (max-width: 1080px) {
-    grid-template-rows: 15% 70% 15%;
-  }
+
   .chat-header {
     display: flex;
     justify-content: space-between;
@@ -136,6 +161,7 @@ const Container = styled.div`
       }
     }
   }
+
   .chat-messages {
     padding: 1rem 2rem;
     display: flex;
@@ -177,5 +203,31 @@ const Container = styled.div`
         background-color: #9900ff20;
       }
     }
+  }
+
+  .chat-typing {
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    .typing-indicator {
+      color: #ffffff;
+      font-size: 0.9rem;
+      opacity: 0.5;
+    }
+  }
+.typing-indicator {
+  color: #ffffff;
+  font-size: 0.9rem;
+  opacity: 0.5;
+  animation: fadeInOut 1.5s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.3; }
+}
+  .chat-input {
+    // ... existing styles for ChatInput container if any ...
   }
 `;

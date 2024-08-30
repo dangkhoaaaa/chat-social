@@ -4,7 +4,7 @@ import { IoMdSend } from "react-icons/io";
 import styled from "styled-components";
 import Picker from "emoji-picker-react";
 
-export default function ChatInput({ handleSendMsg }) {
+export default function ChatInput({ handleSendMsg, handleTyping }) {
   const [msg, setMsg] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const handleEmojiPickerhideShow = () => {
@@ -22,6 +22,7 @@ export default function ChatInput({ handleSendMsg }) {
     if (msg.length > 0) {
       handleSendMsg(msg);
       setMsg("");
+      handleTyping(false); // Stop typing indicator when message is sent
     }
   };
 
@@ -37,7 +38,11 @@ export default function ChatInput({ handleSendMsg }) {
         <input
           type="text"
           placeholder="type your message here"
-          onChange={(e) => setMsg(e.target.value)}
+          onChange={(e) => {
+            setMsg(e.target.value);
+            handleTyping(e.target.value.length > 0);
+          }}
+          onBlur={() => handleTyping(false)}
           value={msg}
         />
         <button type="submit">

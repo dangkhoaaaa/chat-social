@@ -14,6 +14,7 @@ export default function Chat() {
   const [contacts, setContacts] = useState([]);
   const [currentChat, setCurrentChat] = useState(undefined);
   const [currentUser, setCurrentUser] = useState(undefined);
+  const [typingUsers, setTypingUsers] = useState({});
   useEffect(async () => {
     if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
       navigate("/login");
@@ -29,6 +30,9 @@ export default function Chat() {
     if (currentUser) {
       socket.current = io(host);
       socket.current.emit("add-user", currentUser._id);
+      socket.current.on("user-typing", ({ userId, isTyping }) => {
+        setTypingUsers(prev => ({ ...prev, [userId]: isTyping }));
+      });
     }
   }, [currentUser]);
 
@@ -53,7 +57,7 @@ export default function Chat() {
           {currentChat === undefined ? (
             <Welcome />
           ) : (
-            <ChatContainer currentChat={currentChat} socket={socket} />
+            <ChatContainer currentChat={currentChat} socket={socket} currentUser={currentUser}/>
           )}
         </div>
       </Container>

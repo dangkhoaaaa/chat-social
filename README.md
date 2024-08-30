@@ -1,10 +1,11 @@
 # SocialChat Application 
 SocialChat is chat application build with the power of MERN Stack
 
+https://chat-social-dk.vercel.app
 
-![login page](./images/init.png)
+<!-- ![login page](./images/init.png)
 
-![home page](./images/chat.png)
+![home page](./images/chat.png) -->
 
 ## Installation Guide
 

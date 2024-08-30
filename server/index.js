@@ -34,13 +34,15 @@ const server = app.listen(process.env.PORT, () =>
 );
 const io = socket(server, {
   cors: {
-   // origin: "http://localhost:3000",
+  // origin: "http://localhost:3000",
    origin: "https://chat-social-dk.vercel.app",
     credentials: true,
   },
 });
 
 global.onlineUsers = new Map();
+global.typingUsers = new Map(); // Thêm map để theo dõi người dùng đang gõ
+
 io.on("connection", (socket) => {
   global.chatSocket = socket;
   socket.on("add-user", (userId) => {
@@ -53,4 +55,21 @@ io.on("connection", (socket) => {
       socket.to(sendUserSocket).emit("msg-recieve", data.msg);
     }
   });
+
+
+  socket.on("typing", ({ userId, receiverId, isTyping }) => {
+    const receiverSocket = onlineUsers.get(receiverId);
+    if (receiverSocket) {
+      socket.to(receiverSocket).emit("user-typing", { userId, isTyping });
+    }
+    
+
+    if (isTyping) {
+      typingUsers.set(userId, receiverId);
+    } else {
+      typingUsers.delete(userId);
+    }
+  });
+
+
 });
