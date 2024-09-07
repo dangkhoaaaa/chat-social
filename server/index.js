@@ -34,19 +34,38 @@ const server = app.listen(process.env.PORT, () =>
 );
 const io = socket(server, {
   cors: {
-  // origin: "http://localhost:3000",
-   origin: "https://chat-social-dk.vercel.app",
+ //  origin: "http://localhost:3000",
+  origin: "https://chat-social-dk.vercel.app",
     credentials: true,
   },
 });
 
 global.onlineUsers = new Map();
 global.typingUsers = new Map(); // Thêm map để theo dõi người dùng đang gõ
+function logOnlineUsers() {
+  console.log("Current online users:" + new Date().toLocaleTimeString());
+  for (const [userId, socketId] of onlineUsers.entries()) {
+    console.log(`User ID: ${userId}, Socket ID: ${socketId}`);
+  }
+}
+function emitOnlineStatus() {
+ // const onlineStatus = {};
+  for (const [userId, socketId] of onlineUsers.entries()) {
+   // onlineStatus[userId] = true;
+    io.emit("user-status-change", { userId, isOnline: true });
+  }
+  //io.emit("user-status-change", onlineStatus);
 
+}
 io.on("connection", (socket) => {
   global.chatSocket = socket;
+
   socket.on("add-user", (userId) => {
     onlineUsers.set(userId, socket.id);
+   // io.emit("user-status-change", { userId, isOnline: true });
+   emitOnlineStatus();
+ 
+    logOnlineUsers();
   });
 
   socket.on("send-msg", (data) => {
@@ -56,13 +75,11 @@ io.on("connection", (socket) => {
     }
   });
 
-
   socket.on("typing", ({ userId, receiverId, isTyping }) => {
     const receiverSocket = onlineUsers.get(receiverId);
     if (receiverSocket) {
       socket.to(receiverSocket).emit("user-typing", { userId, isTyping });
     }
-    
 
     if (isTyping) {
       typingUsers.set(userId, receiverId);
@@ -70,6 +87,20 @@ io.on("connection", (socket) => {
       typingUsers.delete(userId);
     }
   });
-
+  socket.on("disconnect", () => {
+    let disconnectedUserId;
+    for (const [userId, socketId] of onlineUsers.entries()) {
+      if (socketId === socket.id) {
+        disconnectedUserId = userId;
+        break;
+      }
+    }
+    if (disconnectedUserId) {
+      onlineUsers.delete(disconnectedUserId);
+      emitOnlineStatus();
+    //  io.emit("user-status-change", { userId: disconnectedUserId, isOnline: false });
+      logOnlineUsers();
+    }
+  });
 
 });

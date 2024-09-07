@@ -14,29 +14,56 @@ export default function Chat() {
   const [contacts, setContacts] = useState([]);
   const [currentChat, setCurrentChat] = useState(undefined);
   const [currentUser, setCurrentUser] = useState(undefined);
+
+
+
+  const [onlineUsers, setOnlineUsers] = useState({});
   const [typingUsers, setTypingUsers] = useState({});
-  useEffect(async () => {
-    if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
-      navigate("/login");
-    } else {
-      setCurrentUser(
-        await JSON.parse(
-          localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
-        )
-      );
-    }
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
+        navigate("/login");
+      } else {
+        setCurrentUser(
+          await JSON.parse(
+            localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
+          )
+        );
+      }
+    };
+    fetchCurrentUser();
   }, []);
+
   useEffect(() => {
     if (currentUser) {
+      
       socket.current = io(host);
       socket.current.emit("add-user", currentUser._id);
       socket.current.on("user-typing", ({ userId, isTyping }) => {
         setTypingUsers(prev => ({ ...prev, [userId]: isTyping }));
       });
+      socket.current.on("user-status-change", ({ userId, isOnline }) => {
+        setOnlineUsers(prev => {
+          const newOnlineUsers = { ...prev };
+          if (isOnline) {
+            newOnlineUsers[userId] = true;
+          } else {
+            delete newOnlineUsers[userId];
+          }
+          return newOnlineUsers;
+        });
+      });
+    //  console.log("Current User:", currentUser);
+     // console.log("Online User:", onlineUsers);
+      return () => {
+        socket.current.off("user-status-change");
+        socket.current.disconnect();
+      };
     }
   }, [currentUser]);
 
   useEffect(async () => {
+
     if (currentUser) {
       if (currentUser.isAvatarImageSet) {
         const data = await axios.get(`${allUsersRoute}/${currentUser._id}`);
@@ -51,13 +78,15 @@ export default function Chat() {
   };
   return (
     <>
+
       <Container>
+        
         <div className="container">
-          <Contacts contacts={contacts} changeChat={handleChatChange} />
+          <Contacts contacts={contacts} changeChat={handleChatChange} socket={socket}  onlineUsers={onlineUsers}  />
           {currentChat === undefined ? (
             <Welcome />
           ) : (
-            <ChatContainer currentChat={currentChat} socket={socket} currentUser={currentUser}/>
+            <ChatContainer currentChat={currentChat} socket={socket} currentUser={currentUser} onlineUsers={onlineUsers}/>
           )}
         </div>
       </Container>

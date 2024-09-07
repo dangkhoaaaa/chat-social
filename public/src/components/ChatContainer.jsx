@@ -6,12 +6,12 @@ import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { sendMessageRoute, recieveMessageRoute } from "../utils/APIRoutes";
 
-export default function ChatContainer({ currentChat, socket, currentUser }) {
+export default function ChatContainer({ currentChat, socket, currentUser,onlineUsers }) {
   const [messages, setMessages] = useState([]);
   const scrollRef = useRef();
   const [arrivalMessage, setArrivalMessage] = useState(null);
   const [typingUsers, setTypingUsers] = useState({});
-
+  const [isOnline, setIsOnline] = useState(false);
   useEffect(async () => {
     const data = await JSON.parse(
       localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
@@ -74,14 +74,22 @@ export default function ChatContainer({ currentChat, socket, currentUser }) {
       socket.current.on("user-typing", ({ userId, isTyping }) => {
         setTypingUsers(prev => ({ ...prev, [userId]: isTyping }));
       });
+      socket.current.on("user-status-change", ({ userId, isOnline }) => {
+        console.log("dd");
+        if (userId === currentChat._id) {
+          console.log("d");
+          setIsOnline(isOnline);
+        }
+      });
     }
     return () => {
       if (socket.current) {
         socket.current.off("msg-recieve");
         socket.current.off("user-typing");
+        socket.current.off("user-status-change");
       }
     };
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
     arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
@@ -157,6 +165,16 @@ const Container = styled.div`
       .username {
         h3 {
           color: white;
+        }
+        .online-status {
+          font-size: 0.8rem;
+          margin-top: 0.2rem;
+        }
+        .online {
+          color: #44b700;
+        }
+        .offline {
+          color: #ccc;
         }
       }
     }

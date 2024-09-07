@@ -2,17 +2,39 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Logo from "../assets/logo.png";
 
-export default function Contacts({ contacts, changeChat }) {
+export default function Contacts({ contacts, changeChat, socket,onlineUsers }) {
   const [currentUserName, setCurrentUserName] = useState(undefined);
   const [currentUserImage, setCurrentUserImage] = useState(undefined);
   const [currentSelected, setCurrentSelected] = useState(undefined);
-  useEffect(async () => {
-    const data = await JSON.parse(
-      localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
-    );
-    setCurrentUserName(data.username);
-    setCurrentUserImage(data.avatarImage);
+  const [ setOnlineUsers] = useState({});
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const data = await JSON.parse(
+        localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
+      );
+      setCurrentUserName(data.username);
+      setCurrentUserImage(data.avatarImage);
+    };
+    fetchCurrentUser();
   }, []);
+
+  useEffect(() => {
+    if (socket.current) {
+      socket.current.on("user-status-change", ({ userId, isOnline }) => {
+        setOnlineUsers(prev => ({ ...prev, [userId]: isOnline }));
+      });
+      
+        
+    }
+    console.log("Online User:", onlineUsers);
+    return () => {
+      if (socket.current) {
+        socket.current.off("user-status-change");
+      }
+    };
+  }, [socket]);
+
   const changeCurrentChat = (index, contact) => {
     setCurrentSelected(index);
     changeChat(contact);
@@ -43,6 +65,9 @@ export default function Contacts({ contacts, changeChat }) {
                   </div>
                   <div className="username">
                     <h3>{contact.username}</h3>
+                    <div className={`online-status ${onlineUsers[contact._id] ? 'online' : 'offline'}`}>
+                      {onlineUsers[contact._id] ? 'Online' : 'Offline'}
+                    </div>
                   </div>
                 </div>
               );
@@ -115,6 +140,18 @@ const Container = styled.div`
       .username {
         h3 {
           color: white;
+        }
+           .online-status {
+          font-size: 0.7rem;
+          margin-top: 0.2rem;
+        }
+
+        .online {
+          color: #44b700;
+        }
+
+        .offline {
+          color: #ccc;
         }
       }
     }
