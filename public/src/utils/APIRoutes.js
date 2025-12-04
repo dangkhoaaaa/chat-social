@@ -1,4 +1,4 @@
-export const host = process.env.REACT_APP_API_URL || "";
+export const host = process.env.REACT_APP_API_URL || "https://chat-social-api.onrender.com";
 
 // Auth routes 1
 export const loginRoute = `${host}/api/auth/login`;
