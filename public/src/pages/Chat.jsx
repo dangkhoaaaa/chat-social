@@ -78,17 +78,21 @@ export default function Chat() {
   };
   return (
     <>
-
-      <Container>
-        
+      <Container isChatActive={!!currentChat}>
         <div className="container">
           <Contacts contacts={contacts} changeChat={handleChatChange} socket={socket}  onlineUsers={onlineUsers}  />
-          {currentChat === undefined ? (
-            <Welcome />
-          ) : (
-            <ChatContainer currentChat={currentChat} socket={socket} currentUser={currentUser} onlineUsers={onlineUsers}/>
-          )}
-        </div>
+                    {currentChat === undefined ? (
+                      <Welcome key="welcome" />
+                    ) : (
+                      <ChatContainer
+                        key={currentChat._id}
+                        currentChat={currentChat}
+                        socket={socket}
+                        currentUser={currentUser}
+                        onlineUsers={onlineUsers}
+                        handleBack={() => setCurrentChat(undefined)}
+                      />
+                    )}        </div>
       </Container>
     </>
   );
@@ -100,9 +104,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1rem;
-  align-items: center;
-  // background-color: #131324;
+  overflow-x: hidden;
   background-image: url('https://images.kienthuc.net.vn/zoom/800/Uploaded/quocquan/2022_03_07/stars-in-the-sky-16464831158261870257042_XOKT.jpg');
   background-size: cover;
   background-position: 0 0;
@@ -113,17 +115,27 @@ const Container = styled.div`
       background-position: 0 0;
     }
     100% {
-      background-position: -1000px 0; /* Adjust the value to control the speed and direction */
+      background-position: -1000px 0;
     }
   }
+
   .container {
     height: 85vh;
     width: 85vw;
     background-color: #00000076;
     display: grid;
     grid-template-columns: 25% 75%;
+    transition: transform 0.3s ease-in-out;
+
     @media screen and (min-width: 720px) and (max-width: 1080px) {
       grid-template-columns: 35% 65%;
+    }
+
+    @media screen and (max-width: 720px) {
+      grid-template-columns: 100vw 100vw;
+      width: 200vw;
+      height: 100vh;
+      transform: ${(props) => (props.isChatActive ? "translateX(-100vw)" : "translateX(0)")};
     }
   }
 `;

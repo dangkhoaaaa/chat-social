@@ -4,9 +4,10 @@ import ChatInput from "./ChatInput";
 import Logout from "./Logout";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
+import { HiArrowLeft } from "react-icons/hi";
 import { sendMessageRoute, recieveMessageRoute } from "../utils/APIRoutes";
 
-export default function ChatContainer({ currentChat, socket, currentUser,onlineUsers }) {
+export default function ChatContainer({ currentChat, socket, currentUser, onlineUsers, handleBack }) {
   const [messages, setMessages] = useState([]);
   const scrollRef = useRef();
   const [arrivalMessage, setArrivalMessage] = useState(null);
@@ -48,28 +49,72 @@ export default function ChatContainer({ currentChat, socket, currentUser,onlineU
     const data = await JSON.parse(
       localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
     );
+    const sentMsg = {
+      message: msg,
+      messageType: "text",
+    };
     socket.current.emit("send-msg", {
       to: currentChat._id,
       from: data._id,
-      msg,
+      msg: sentMsg,
     });
     await axios.post(sendMessageRoute, {
       from: data._id,
       to: currentChat._id,
       message: msg,
+      messageType: "text",
     });
 
     const msgs = [...messages];
-    msgs.push({ fromSelf: true, message: msg });
+    msgs.push({ fromSelf: true, ...sentMsg });
     setMessages(msgs);
 
-    handleTyping(false); // Stop typing indicator when message is sent
+    handleTyping(false);
+  };
+
+  const handleSendMedia = async (file) => {
+    const data = await JSON.parse(
+      localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
+    );
+
+    try {
+      const formData = new FormData();
+      formData.append("from", data._id);
+      formData.append("to", currentChat._id);
+      formData.append("media", file);
+      formData.append("messageType", file.type.startsWith("image/") ? "image" : "video");
+
+      const response = await axios.post(sendMessageRoute, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.data.status) {
+        const sentMsg = {
+          message: "",
+          messageType: file.type.startsWith("image/") ? "image" : "video",
+          media: response.data.message.media,
+        };
+        const msgs = [...messages];
+        msgs.push({ fromSelf: true, ...sentMsg });
+        setMessages(msgs);
+
+        socket.current.emit("send-msg", {
+          to: currentChat._id,
+          from: data._id,
+          msg: sentMsg,
+        });
+      }
+    } catch (error) {
+      console.error("Error sending media:", error);
+    }
   };
 
   useEffect(() => {
     if (socket.current) {
       socket.current.on("msg-recieve", (msg) => {
-        setArrivalMessage({ fromSelf: false, message: msg });
+        setArrivalMessage({ fromSelf: false, ...msg });
       });
       socket.current.on("user-typing", ({ userId, isTyping }) => {
         setTypingUsers(prev => ({ ...prev, [userId]: isTyping }));
@@ -103,6 +148,9 @@ export default function ChatContainer({ currentChat, socket, currentUser,onlineU
     <Container>
       <div className="chat-header">
         <div className="user-details">
+          <BackButton onClick={handleBack}>
+            <HiArrowLeft />
+          </BackButton>
           <div className="avatar">
             <img
               src={`data:image/svg+xml;base64,${currentChat.avatarImage}`}
@@ -116,16 +164,36 @@ export default function ChatContainer({ currentChat, socket, currentUser,onlineU
         <Logout />
       </div>
       <div className="chat-messages">
-        {messages.map((message) => {
+        {messages.map((message, index) => {
           return (
-            <div ref={scrollRef} key={uuidv4()}>
+            <div ref={index === messages.length - 1 ? scrollRef : null} key={uuidv4()}>
               <div
                 className={`message ${
                   message.fromSelf ? "sended" : "recieved"
                 }`}
               >
-                <div className="content ">
-                  <p>{message.message}</p>
+                {message.sender && !message.fromSelf && (
+                  <div className="sender-avatar">
+                    <img
+                      src={
+                        message.sender.avatarImage
+                          ? message.sender.avatarImage.startsWith("data:")
+                            ? message.sender.avatarImage
+                            : message.sender.avatarImage
+                          : ""
+                      }
+                      alt={message.sender.username}
+                    />
+                  </div>
+                )}
+                <div className="content">
+                  {message.messageType === "image" && message.media ? (
+                    <img src={message.media.url} alt="Shared image" />
+                  ) : message.messageType === "video" && message.media ? (
+                    <video src={message.media.url} controls />
+                  ) : (
+                    <p>{message.message}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -137,10 +205,33 @@ export default function ChatContainer({ currentChat, socket, currentUser,onlineU
           <div className="typing-indicator">{currentChat.username} is typing...</div>
         )}
       </div>
-      <ChatInput handleSendMsg={handleSendMsg} handleTyping={handleTyping} />
+      <ChatInput
+        handleSendMsg={handleSendMsg}
+        handleTyping={handleTyping}
+        handleSendMedia={handleSendMedia}
+      />
     </Container>
   );
 }
+
+const BackButton = styled.button`
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  
+  &:hover {
+    background-color: #ffffff1a;
+  }
+
+  @media screen and (max-width: 720px) {
+    display: block;
+  }
+`;
 
 const Container = styled.div`
   display: grid;
@@ -196,7 +287,20 @@ const Container = styled.div`
     }
     .message {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
+      gap: 8px;
+      .sender-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
       .content {
         max-width: 40%;
         overflow-wrap: break-word;
@@ -206,6 +310,13 @@ const Container = styled.div`
         color: #d1d1d1;
         @media screen and (min-width: 720px) and (max-width: 1080px) {
           max-width: 70%;
+        }
+        img,
+        video {
+          max-width: 100%;
+          max-height: 300px;
+          border-radius: 8px;
+          object-fit: contain;
         }
       }
     }

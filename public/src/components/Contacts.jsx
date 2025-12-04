@@ -58,28 +58,28 @@ export default function Contacts({ contacts, changeChat, socket,onlineUsers }) {
                   onClick={() => changeCurrentChat(index, contact)}
                 >
                   <div className="avatar">
-                    <img
-                      src={`data:image/svg+xml;base64,${contact.avatarImage}`}
-                      alt=""
-                    />
-                  </div>
-                  <div className="username">
-                    <h3>{contact.username}</h3>
-                    <div className={`online-status ${onlineUsers[contact._id] ? 'online' : 'offline'}`}>
-                      {onlineUsers[contact._id] ? 'Online' : 'Offline'}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="current-user">
-            <div className="avatar">
-              <img
-                src={`data:image/svg+xml;base64,${currentUserImage}`}
-                alt="avatar"
-              />
-            </div>
+  <img
+    src={contact.avatarImage && contact.avatarImage.url ? contact.avatarImage.url : `data:image/svg+xml;base64,${contact.avatarImage}`}
+    alt=""
+  />
+</div>
+<div className="username">
+  <h3>{contact.username}</h3>
+  <div className={`online-status ${onlineUsers[contact._id] ? 'online' : 'offline'}`}>
+    {onlineUsers[contact._id] ? 'Online' : 'Offline'}
+  </div>
+</div>
+</div>
+);
+})}
+</div>
+<div className="current-user">
+<div className="avatar">
+  <img
+    src={currentUserImage && currentUserImage.url ? currentUserImage.url : `data:image/svg+xml;base64,${currentUserImage}`}
+    alt="avatar"
+  />
+</div>
             <div className="username">
               <h2>{currentUserName}</h2>
             </div>

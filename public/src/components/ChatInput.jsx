@@ -1,12 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { BsEmojiSmileFill } from "react-icons/bs";
 import { IoMdSend } from "react-icons/io";
+import { HiPhotograph } from "react-icons/hi";
+import { HiX } from "react-icons/hi";
 import styled from "styled-components";
 import Picker from "emoji-picker-react";
 
-export default function ChatInput({ handleSendMsg, handleTyping }) {
+export default function ChatInput({ handleSendMsg, handleTyping, handleSendMedia }) {
   const [msg, setMsg] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
   const handleEmojiPickerhideShow = () => {
     setShowEmojiPicker(!showEmojiPicker);
   };
@@ -17,22 +23,67 @@ export default function ChatInput({ handleSendMsg, handleTyping }) {
     setMsg(message);
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && (file.type.startsWith("image/") || file.type.startsWith("video/"))) {
+      setMediaFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const sendChat = (event) => {
     event.preventDefault();
-    if (msg.length > 0) {
+    if (mediaFile && handleSendMedia) {
+      handleSendMedia(mediaFile);
+      removeMedia();
+    } else if (msg.length > 0) {
       handleSendMsg(msg);
       setMsg("");
-      handleTyping(false); // Stop typing indicator when message is sent
+      handleTyping(false);
     }
   };
 
   return (
     <Container>
+      {mediaPreview && (
+        <MediaPreview>
+          <RemoveMediaButton onClick={removeMedia}>
+            <HiX />
+          </RemoveMediaButton>
+          {mediaFile.type.startsWith("image/") ? (
+            <img src={mediaPreview} alt="Preview" />
+          ) : (
+            <video src={mediaPreview} controls />
+          )}
+        </MediaPreview>
+      )}
       <div className="button-container">
         <div className="emoji">
           <BsEmojiSmileFill onClick={handleEmojiPickerhideShow} />
           {showEmojiPicker && <Picker onEmojiClick={handleEmojiClick} />}
         </div>
+        <MediaButton onClick={() => fileInputRef.current?.click()}>
+          <HiPhotograph />
+        </MediaButton>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleFileSelect}
+          style={{ display: "none" }}
+        />
       </div>
       <form className="input-container" onSubmit={(event) => sendChat(event)}>
         <input
@@ -45,7 +96,7 @@ export default function ChatInput({ handleSendMsg, handleTyping }) {
           onBlur={() => handleTyping(false)}
           value={msg}
         />
-        <button type="submit">
+        <button type="submit" disabled={!msg.trim() && !mediaFile}>
           <IoMdSend />
         </button>
       </form>
@@ -53,14 +104,57 @@ export default function ChatInput({ handleSendMsg, handleTyping }) {
   );
 }
 
+
+
+const MediaPreview = styled.div`
+  position: relative;
+  max-width: 300px;
+  max-height: 200px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #202225;
+
+  img,
+  video {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+`;
+
+const RemoveMediaButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  z-index: 1;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+`;
+
+const MediaButton = styled.button``;
+
 const Container = styled.div`
-  display: grid;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   grid-template-columns: 5% 95%;
-  background-color: #080420;
-  padding: 0 2rem;
+  background-color: #2f3136;
+  padding: 1rem;
   @media screen and (min-width: 720px) and (max-width: 1080px) {
-    padding: 0 1rem;
+    padding: 0.5rem;
     gap: 1rem;
   }
   .button-container {
@@ -77,15 +171,16 @@ const Container = styled.div`
       }
       .emoji-picker-react {
         position: absolute;
-        top: -350px;
-        background-color: #080420;
-        box-shadow: 0 5px 10px #9a86f3;
-        border-color: #9a86f3;
+        bottom: 50px;
+        left: 0;
+        background-color: #2f3136;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+        border-color: #5865f2;
         .emoji-scroll-wrapper::-webkit-scrollbar {
-          background-color: #080420;
+          background-color: #2f3136;
           width: 5px;
           &-thumb {
-            background-color: #9a86f3;
+            background-color: #5865f2;
           }
         }
         .emoji-categories {
@@ -95,10 +190,10 @@ const Container = styled.div`
         }
         .emoji-search {
           background-color: transparent;
-          border-color: #9a86f3;
+          border-color: #5865f2;
         }
         .emoji-group:before {
-          background-color: #080420;
+          background-color: #2f3136;
         }
       }
     }
